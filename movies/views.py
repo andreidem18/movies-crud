@@ -14,6 +14,11 @@ class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset().filter(created_by=get_client_ip(request))
+        serialized = MovieSerializer(queryset, many=True)
+        return Response(serialized.data)
+
     def create(self, request, *args, **kwargs):
         movie = Movie.objects.create(
             name=request.data['name'], 
