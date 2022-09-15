@@ -10,6 +10,11 @@ class MovieSerializer(serializers.ModelSerializer):
         model = Movie
         fields = ('id', 'name', 'genre', 'duration', 'release_date')
         
+class CreateMovieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Movie
+        fields = ('id', 'name', 'genre', 'duration', 'release_date', 'created_by')
+
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
@@ -20,12 +25,11 @@ class MovieViewSet(viewsets.ModelViewSet):
         return Response(serialized.data)
 
     def create(self, request, *args, **kwargs):
-        movie = Movie.objects.create(
-            name=request.data['name'], 
-            genre=request.data['genre'], 
-            duration=request.data['duration'], 
-            release_date=request.data['release_date'], 
-            created_by=get_client_ip(request)
-        )
-        serialized = MovieSerializer(movie)
-        return Response(status = status.HTTP_201_CREATED, data = serialized.data)
+        request.data['created_by']=get_client_ip(request)
+        serialized = CreateMovieSerializer(data=request.data)
+        if not serialized.is_valid():
+            return Response(status = status.HTTP_400_BAD_REQUEST, data = serialized.errors)
+        else:
+            serialized.save()
+            serialized = MovieSerializer(serialized.data)
+            return Response(status = status.HTTP_201_CREATED, data = serialized.data)
